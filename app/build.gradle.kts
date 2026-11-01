@@ -50,7 +50,7 @@ android {
             manifestPlaceholders["appLabel"] = "OC Remote Dev"
         }
         release {
-            manifestPlaceholders["appLabel"] = "OC Remote Fork"
+            manifestPlaceholders["appLabel"] = "OC Remote Fork (No Update)"
             if (!hasPropertiesFile) {
                 signingConfig = signingConfigs.getByName("debug")
             }
