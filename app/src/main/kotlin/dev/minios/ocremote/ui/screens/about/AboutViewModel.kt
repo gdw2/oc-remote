@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.minios.ocremote.data.update.UpdateRepository
 import dev.minios.ocremote.data.update.UpdateState
-import dev.minios.ocremote.data.update.AvailableUpdate
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,11 +23,4 @@ class AboutViewModel @Inject constructor(
         viewModelScope.launch { updateRepository.check(manual = true) }
     }
 
-    fun prepareInstall(release: AvailableUpdate) {
-        viewModelScope.launch { updateRepository.prepareInstall(release) }
-    }
-
-    fun installerLaunched() {
-        updateRepository.markInstallerLaunched()
-    }
 }

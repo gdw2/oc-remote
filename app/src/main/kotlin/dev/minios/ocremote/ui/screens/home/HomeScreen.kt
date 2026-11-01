@@ -54,7 +54,6 @@ import dev.minios.ocremote.domain.model.ServerConfig
 import dev.minios.ocremote.ui.screens.settings.LocalServerLaunchOptionsDialog
 import dev.minios.ocremote.ui.theme.StatusConnected
 import dev.minios.ocremote.data.update.UpdateState
-import dev.minios.ocremote.data.update.UpdatePolicy
 import dev.minios.ocremote.ui.components.AppCardShape
 import dev.minios.ocremote.ui.components.AppDialog
 import dev.minios.ocremote.ui.components.AppPrimaryButton
@@ -63,7 +62,6 @@ import dev.minios.ocremote.ui.components.appAmoledBorder
 import dev.minios.ocremote.ui.components.isAmoledTheme
 import dev.minios.ocremote.ui.components.appPopupBorder
 import dev.minios.ocremote.ui.components.appPopupContainerColor
-import dev.minios.ocremote.ui.components.rememberUpdateInstallLauncher
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -165,7 +163,6 @@ fun HomeScreen(
     val sessionFeatures = dev.minios.ocremote.ui.components.LocalSessionFeatures.current
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
-    val launchInstaller = rememberUpdateInstallLauncher(viewModel::installerLaunched)
     val localServerUrl = remember { normalizeServerUrl(LocalServerManager.LOCAL_SERVER_URL) }
     val localServer = uiState.servers.firstOrNull { normalizeServerUrl(it.url) == localServerUrl }
     val remoteServers = uiState.servers.filterNot { normalizeServerUrl(it.url) == localServerUrl }
@@ -181,12 +178,6 @@ fun HomeScreen(
         val current = draggedServers ?: return@rememberReorderableLazyListState
         val reordered = moveServerByKey(current, from.key, to.key)
         if (reordered !== current) draggedServers = reordered
-    }
-
-    val readyUpdate = uiState.updateState as? UpdateState.ReadyToInstall
-    val lifecycleState by androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsState()
-    LaunchedEffect(readyUpdate?.apkPath, lifecycleState) {
-        if (lifecycleState == androidx.lifecycle.Lifecycle.State.RESUMED) readyUpdate?.let { launchInstaller(it.apkPath) }
     }
 
     LaunchedEffect(addServerRequest) {
@@ -320,8 +311,6 @@ fun HomeScreen(
                                 UpdateAvailableCard(
                                     onWhatsNew = onOpenUpdateDetails,
                                     updateState = uiState.updateState,
-                                    onPrepareInstall = viewModel::prepareInstall,
-                                    onOpenInstaller = launchInstaller,
                                     onCheckUpdates = viewModel::checkForUpdates,
                                     onOpenRelease = { releaseUrl ->
                                         context.startActivity(
@@ -567,8 +556,6 @@ private fun FavoritesCard(onClick: () -> Unit) {
 private fun UpdateAvailableCard(
     onWhatsNew: () -> Unit,
     updateState: UpdateState,
-    onPrepareInstall: (dev.minios.ocremote.data.update.AvailableUpdate) -> Unit,
-    onOpenInstaller: (String) -> Unit,
     onCheckUpdates: () -> Unit,
     onOpenRelease: (String) -> Unit,
 ) {
@@ -622,41 +609,22 @@ private fun UpdateAvailableCard(
                 ) { Text(stringResource(R.string.update_downloading)) }
 
                 is UpdateState.ReadyToInstall -> TextButton(
-                    onClick = { onOpenInstaller(updateState.apkPath) },
-                ) { Text(stringResource(R.string.update_opening_installer)) }
+                    onClick = { onOpenRelease(updateState.release.releaseUrl) },
+                ) { Text(stringResource(R.string.update_open_release)) }
 
                 is UpdateState.Available -> TextButton(
-                    onClick = {
-                        val availableRelease = requireNotNull(release)
-                        if (UpdatePolicy.isInstallable(availableRelease)) onPrepareInstall(availableRelease)
-                        else onOpenRelease(availableRelease.releaseUrl)
-                    },
-                ) {
-                    Text(
-                        stringResource(
-                            if (UpdatePolicy.isInstallable(requireNotNull(release))) {
-                                R.string.update_download_and_install
-                            } else {
-                                R.string.update_open_release
-                            },
-                        ),
-                    )
-                }
+                    onClick = { onOpenRelease(requireNotNull(release).releaseUrl) },
+                ) { Text(stringResource(R.string.update_open_release)) }
 
                 is UpdateState.Error -> TextButton(
                     onClick = {
-                        if (release == null) onCheckUpdates()
-                        else if (UpdatePolicy.isInstallable(release)) onPrepareInstall(release)
-                        else onOpenRelease(release.releaseUrl)
+                        if (release == null) onCheckUpdates() else onOpenRelease(release.releaseUrl)
                     },
                 ) {
                     Text(
                         stringResource(
-                            when {
-                                release == null -> R.string.about_check_updates
-                                UpdatePolicy.isInstallable(release) -> R.string.update_retry
-                                else -> R.string.update_open_release
-                            },
+                            if (release == null) R.string.about_check_updates
+                            else R.string.update_open_release,
                         ),
                     )
                 }

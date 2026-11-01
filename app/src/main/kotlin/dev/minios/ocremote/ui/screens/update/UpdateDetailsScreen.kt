@@ -14,12 +14,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownTypography
 import dev.minios.ocremote.R
-import dev.minios.ocremote.data.update.UpdatePolicy
 import dev.minios.ocremote.data.update.UpdateState
 import dev.minios.ocremote.ui.components.AppPrimaryButton
 import dev.minios.ocremote.ui.components.backIcon
 import dev.minios.ocremote.ui.components.rememberInteractiveMarkdownLinks
-import dev.minios.ocremote.ui.components.rememberUpdateInstallLauncher
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,12 +26,6 @@ fun UpdateDetailsScreen(onNavigateBack: () -> Unit, showTopBar: Boolean = true, 
     val update by viewModel.updateState.collectAsState()
     val release = notes.release
     val uriHandler = LocalUriHandler.current
-    val launchInstaller = rememberUpdateInstallLauncher(viewModel::installerLaunched)
-    val ready = update as? UpdateState.ReadyToInstall
-    val lifecycleState by androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsState()
-    LaunchedEffect(ready?.apkPath, lifecycleState) {
-        if (lifecycleState == androidx.lifecycle.Lifecycle.State.RESUMED) ready?.let { launchInstaller(it.apkPath) }
-    }
     val downloading = update as? UpdateState.Downloading
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -64,19 +56,12 @@ fun UpdateDetailsScreen(onNavigateBack: () -> Unit, showTopBar: Boolean = true, 
                     if (update is UpdateState.Error) Text(stringResource(R.string.update_prepare_error), color = MaterialTheme.colorScheme.error)
                     AppPrimaryButton(
                         modifier = Modifier.fillMaxWidth(), enabled = downloading == null,
-                        onClick = {
-                            if (ready != null) launchInstaller(ready.apkPath)
-                            else if (UpdatePolicy.isInstallable(release)) viewModel.prepareInstall(release)
-                            else uriHandler.openUri(release.releaseUrl)
-                        },
+                        onClick = { uriHandler.openUri(release.releaseUrl) },
                     ) {
-                        Text(stringResource(when {
-                            downloading != null -> R.string.update_downloading
-                            ready != null -> R.string.update_opening_installer
-                            !UpdatePolicy.isInstallable(release) -> R.string.update_open_release
-                            update is UpdateState.Error -> R.string.update_retry
-                            else -> R.string.update_download_and_install
-                        }))
+                        Text(stringResource(
+                            if (downloading != null) R.string.update_downloading
+                            else R.string.update_open_release,
+                        ))
                     }
                 }
             }

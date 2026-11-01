@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -28,12 +27,10 @@ import androidx.compose.ui.unit.dp
 import dev.minios.ocremote.BuildConfig
 import dev.minios.ocremote.R
 import dev.minios.ocremote.data.update.UpdateState
-import dev.minios.ocremote.data.update.UpdatePolicy
 import dev.minios.ocremote.ui.components.AppCardShape
 import dev.minios.ocremote.ui.components.AppPrimaryButton
 import dev.minios.ocremote.ui.components.appAmoledBorder
 import dev.minios.ocremote.ui.components.isAmoledTheme
-import dev.minios.ocremote.ui.components.rememberUpdateInstallLauncher
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,15 +44,8 @@ fun AboutScreen(
     val context = LocalContext.current
     val version = BuildConfig.VERSION_NAME
     val updateState by viewModel.updateState.collectAsState()
-    val launchInstaller = rememberUpdateInstallLauncher(viewModel::installerLaunched)
     val isAmoled = isAmoledTheme()
     val cardColor = if (isAmoled) Color.Black else MaterialTheme.colorScheme.surfaceContainer
-
-    val readyUpdate = updateState as? UpdateState.ReadyToInstall
-    val lifecycleState by androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsState()
-    LaunchedEffect(readyUpdate?.apkPath, lifecycleState) {
-        if (lifecycleState == androidx.lifecycle.Lifecycle.State.RESUMED) readyUpdate?.let { launchInstaller(it.apkPath) }
-    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -185,50 +175,31 @@ fun AboutScreen(
                     ) { Text(stringResource(R.string.update_downloading)) }
 
                     is UpdateState.ReadyToInstall -> AppPrimaryButton(
-                        onClick = { launchInstaller(state.apkPath) },
+                        onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(state.release.releaseUrl)))
+                        },
                         modifier = buttonModifier,
-                    ) { Text(stringResource(R.string.update_opening_installer)) }
+                    ) { Text(stringResource(R.string.update_open_release)) }
 
                     is UpdateState.Available -> AppPrimaryButton(
                         onClick = {
-                            if (UpdatePolicy.isInstallable(state.release)) {
-                                viewModel.prepareInstall(state.release)
-                            } else {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(state.release.releaseUrl)))
-                            }
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(state.release.releaseUrl)))
                         },
                         modifier = buttonModifier,
-                    ) {
-                        Text(
-                            stringResource(
-                                if (UpdatePolicy.isInstallable(state.release)) {
-                                    R.string.update_download_and_install
-                                } else {
-                                    R.string.update_open_release
-                                },
-                            ),
-                        )
-                    }
+                    ) { Text(stringResource(R.string.update_open_release)) }
 
                     is UpdateState.Error -> AppPrimaryButton(
                         onClick = {
                             state.release?.let { release ->
-                                if (UpdatePolicy.isInstallable(release)) {
-                                    viewModel.prepareInstall(release)
-                                } else {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(release.releaseUrl)))
-                                }
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(release.releaseUrl)))
                             } ?: viewModel.checkForUpdates()
                         },
                         modifier = buttonModifier,
                     ) {
                         Text(
                             stringResource(
-                                when {
-                                    state.release == null -> R.string.about_check_updates
-                                    UpdatePolicy.isInstallable(state.release) -> R.string.update_retry
-                                    else -> R.string.update_open_release
-                                },
+                                if (state.release == null) R.string.about_check_updates
+                                else R.string.update_open_release,
                             ),
                         )
                     }

@@ -55,6 +55,4 @@ class UpdateDetailsViewModel @Inject constructor(private val repository: UpdateR
         }
     }
 
-    fun prepareInstall(release: AvailableUpdate) { viewModelScope.launch { repository.prepareInstall(release) } }
-    fun installerLaunched() = repository.markInstallerLaunched()
 }

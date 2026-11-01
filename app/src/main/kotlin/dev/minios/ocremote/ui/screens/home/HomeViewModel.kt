@@ -25,7 +25,6 @@ import dev.minios.ocremote.data.repository.DiagnosticLogRepository
 import dev.minios.ocremote.data.repository.EventReducer
 import dev.minios.ocremote.data.update.UpdateRepository
 import dev.minios.ocremote.data.update.UpdateState
-import dev.minios.ocremote.data.update.AvailableUpdate
 import dev.minios.ocremote.domain.model.ServerConfig
 import dev.minios.ocremote.service.OpenCodeConnectionService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -808,14 +807,6 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.setLocalServerStartupTimeoutSec(value)
         }
-    }
-
-    fun prepareInstall(release: AvailableUpdate) {
-        viewModelScope.launch { updateRepository.prepareInstall(release) }
-    }
-
-    fun installerLaunched() {
-        updateRepository.markInstallerLaunched()
     }
 
     fun checkForUpdates() {

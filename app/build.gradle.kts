@@ -15,7 +15,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "dev.minios.ocremote.fork"
+        applicationId = "dev.minios.ocremote.fork.noselfupdate"
         minSdk = 26
         targetSdk = 34
         versionCode = 32
