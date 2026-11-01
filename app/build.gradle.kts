@@ -15,7 +15,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "dev.minios.ocremote"
+        applicationId = "dev.minios.ocremote.fork"
         minSdk = 26
         targetSdk = 34
         versionCode = 32
@@ -50,7 +50,10 @@ android {
             manifestPlaceholders["appLabel"] = "OC Remote Dev"
         }
         release {
-            manifestPlaceholders["appLabel"] = "@string/app_name"
+            manifestPlaceholders["appLabel"] = "OC Remote Fork"
+            if (!hasPropertiesFile) {
+                signingConfig = signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
